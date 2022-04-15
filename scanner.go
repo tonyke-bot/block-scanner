@@ -210,11 +210,9 @@ func (s *Scanner) scanTaskDoWork(ctx context.Context, nextBlock uint64, task Sca
 	logger := logrus.WithField("task", task.Name())
 
 	ethClientRpcUrl := s.options.RpcURL
-	fullSyncedEthClientRpcUrl := s.options.ArchivedSyncedRpcURL
 
 	if task, ok := task.(ScanTaskOverridesEthRpcURL); ok {
 		ethClientRpcUrl = task.EthRpcUrl()
-		fullSyncedEthClientRpcUrl = task.ArchiveSyncedEthRpcUrl()
 	}
 
 	ethClient, err := util.NewRetryableEthclient(
@@ -230,21 +228,7 @@ func (s *Scanner) scanTaskDoWork(ctx context.Context, nextBlock uint64, task Sca
 
 	logger.Infof("Connected to the ethereum network: %v", ethClientRpcUrl)
 
-	archiveSyncedEthClient, err := util.NewRetryableEthclient(
-		ctx,
-		fullSyncedEthClientRpcUrl,
-		logger.WithField("client", "archived"),
-		time.Millisecond*500,
-		3)
-	if err != nil {
-		return fmt.Errorf("fail to connect to fullsync ethereum node: %v", err)
-	}
-	defer archiveSyncedEthClient.Close()
-
-	logger.Infof("Connected to the fully synced ethereum network: %v", fullSyncedEthClientRpcUrl)
-
 	task.SetEthClient(ethClient)
-	task.SetArchiveSyncedEthClient(archiveSyncedEthClient)
 
 	ticker := time.NewTicker(task.PullInterval())
 	defer ticker.Stop()
@@ -273,14 +257,6 @@ func (s *Scanner) scanTaskDoWork(ctx context.Context, nextBlock uint64, task Sca
 			continue
 		}
 
-		archiveSyncedClient := ethClient
-
-		if confirmedBlock-nextBlock > 64 {
-			archiveSyncedClient = archiveSyncedEthClient
-		}
-
-		task.SetArchiveSyncedEthClient(archiveSyncedClient)
-
 		fromBlock := nextBlock
 		toBlock := uint64(math.Min(float64(confirmedBlock), float64(fromBlock+task.BlockBatchSize().Uint64()-1)))
 
@@ -305,7 +281,7 @@ func (s *Scanner) scanTaskDoWork(ctx context.Context, nextBlock uint64, task Sca
 			defer getDataWaitGroup.Done()
 
 			if task.LogFilter() != nil {
-				logs, getLogsError = s.getLogs(ctx, archiveSyncedClient, blocksLogger, fromBlock, toBlock, task.LogFilter())
+				logs, getLogsError = s.getLogs(ctx, ethClient, blocksLogger, fromBlock, toBlock, task.LogFilter())
 			}
 		}()
 

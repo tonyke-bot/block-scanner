@@ -31,9 +31,6 @@ type ScanTask interface {
 	// SetEthClient is called by the scanner to set an ethereum client to this task
 	SetEthClient(client *util.RetryableEthclient)
 
-	// SetArchiveSyncedEthClient is called by the scanner to set an fullsynced ethereum client to this task
-	SetArchiveSyncedEthClient(client *util.RetryableEthclient)
-
 	// NeedBlockInfo returns a boolean value to indicate whether the scanner should pass block information or not
 	NeedBlockInfo() bool
 
@@ -43,7 +40,7 @@ type ScanTask interface {
 	// LogFilter returns the filters use to query logs. If nil is returned, no logs will be downloaded
 	LogFilter() []*ethereum.FilterQuery
 
-	// OnNewBlocks is fired when there are multiple new blocks
+	// OnNewBlock is fired when new block is downloaded
 	OnNewBlock(ctx context.Context, block *BlockInfo, db *gorm.DB) error
 
 	// OnBlockCommited is fired after the scanner commited the database changed
@@ -53,9 +50,6 @@ type ScanTask interface {
 type ScanTaskOverridesEthRpcURL interface {
 	// EthRpcUrl returns the URL to an etheruem network RPC endpoint
 	EthRpcUrl() string
-
-	// ArchiveSyncedEthRpcUrl returns the URL to an full-synced etheruem network RPC endpoint
-	ArchiveSyncedEthRpcUrl() string
 }
 
 type ScanTaskStopable interface {
