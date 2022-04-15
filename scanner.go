@@ -220,7 +220,7 @@ func (s *Scanner) scanTaskDoWork(ctx context.Context, nextBlock uint64, task Sca
 		ethClientRpcUrl = task.EthRpcUrl()
 	}
 
-	ethClient, err := util.NewRetryableEthclient(
+	ethClient, err := NewRetryableEthclient(
 		ctx,
 		ethClientRpcUrl,
 		logger.WithField("client", "normal"),
@@ -424,7 +424,7 @@ exit:
 	return
 }
 
-func (s *Scanner) getLogs(ctx context.Context, ethClient *util.RetryableEthclient, logger *logrus.Entry, fromBlock, toBlock uint64, filters []*ethereum.FilterQuery) (map[uint64][]*types.Log, error) {
+func (s *Scanner) getLogs(ctx context.Context, ethClient *RetryableEthclient, logger *logrus.Entry, fromBlock, toBlock uint64, filters []*ethereum.FilterQuery) (map[uint64][]*types.Log, error) {
 	var wg sync.WaitGroup
 	wg.Add(len(filters))
 
@@ -486,7 +486,7 @@ func (s *Scanner) getLogs(ctx context.Context, ethClient *util.RetryableEthclien
 	return logsByBlock, nil
 }
 
-func (s *Scanner) getBlocks(ctx context.Context, ethClient *util.RetryableEthclient, logger *logrus.Entry, fromBlock, toBlock uint64) (map[uint64]*types.Block, error) {
+func (s *Scanner) getBlocks(ctx context.Context, ethClient *RetryableEthclient, logger *logrus.Entry, fromBlock, toBlock uint64) (map[uint64]*types.Block, error) {
 	var wg sync.WaitGroup
 	blocksToGet := toBlock - fromBlock + 1
 

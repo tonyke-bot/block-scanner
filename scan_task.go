@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/THaGKi9/block-scanner/util"
 	"github.com/ethereum/go-ethereum"
 	"gorm.io/gorm"
 )
@@ -29,7 +28,7 @@ type ScanTask interface {
 	PullInterval() time.Duration
 
 	// SetEthClient is called by the scanner to set an ethereum client to this task
-	SetEthClient(client *util.RetryableEthclient)
+	SetEthClient(client *RetryableEthclient)
 
 	// NeedBlockInfo returns a boolean value to indicate whether the scanner should pass block information or not
 	NeedBlockInfo() bool
