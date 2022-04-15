@@ -34,16 +34,21 @@ type Scanner struct {
 	scheduledTasks []ScheduledTask
 }
 
-func NewScanner(ctx context.Context, db *gorm.DB) *Scanner {
+func NewScanner(ctx context.Context, opts *ScannerOptions, db *gorm.DB) *Scanner {
 	ctx, cancelFunc := context.WithCancel(ctx)
 
 	return &Scanner{
 		started: false,
 		db:      db,
+		options: opts,
 
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 	}
+}
+
+func (s *Scanner) InitializeTables() error {
+	return s.db.AutoMigrate(&ScannerTask{})
 }
 
 func (s *Scanner) Start() error {
