@@ -13,7 +13,6 @@ import (
 )
 
 type RetryableEthclient struct {
-	ctx    context.Context
 	client *ethclient.Client
 	logger *logrus.Entry
 
@@ -29,7 +28,6 @@ func NewRetryableEthclient(ctx context.Context, rpcUrl string, logger *logrus.En
 	}
 
 	client := &RetryableEthclient{
-		ctx:    ctx,
 		client: rawEthclient,
 		logger: logger,
 
@@ -40,13 +38,6 @@ func NewRetryableEthclient(ctx context.Context, rpcUrl string, logger *logrus.En
 	return client, nil
 }
 
-func (cli *RetryableEthclient) WithContext(ctx context.Context) *RetryableEthclient {
-	client := *cli
-	client.ctx = ctx
-
-	return &client
-}
-
 func (cli *RetryableEthclient) Close() {
 	if cli.client != nil {
 		cli.client.Close()
@@ -54,18 +45,16 @@ func (cli *RetryableEthclient) Close() {
 	}
 }
 
-func (cli *RetryableEthclient) Execute(executionName string, execution func(context.Context, *ethclient.Client) error) (uint, error) {
+func (cli *RetryableEthclient) Execute(ctx context.Context, executionName string, execution func(context.Context, *ethclient.Client) error) (uint, error) {
 	retriedTimes := uint(0)
 	var err error
 
 	for retriedTimes < cli.maxRetryTime {
-		err = execution(cli.ctx, cli.client)
+		err = execution(ctx, cli.client)
 
 		if err == nil {
 			break
-		}
-
-		if errors.Is(err, context.Canceled) {
+		} else if errors.Is(err, context.Canceled) {
 			return 0, err
 		}
 
@@ -91,10 +80,10 @@ func (cli *RetryableEthclient) Execute(executionName string, execution func(cont
 }
 
 // BlockNumber returns the most recent block number
-func (cli *RetryableEthclient) BlockNumber() (uint64, error) {
+func (cli *RetryableEthclient) BlockNumber(ctx context.Context) (uint64, error) {
 	count := uint64(0)
 
-	_, err := cli.Execute("BlockNumber", func(ctx context.Context, c *ethclient.Client) error {
+	_, err := cli.Execute(ctx, "BlockNumber", func(ctx context.Context, c *ethclient.Client) error {
 		internalCount, err := c.BlockNumber(ctx)
 		if err != nil {
 			return err
@@ -109,11 +98,11 @@ func (cli *RetryableEthclient) BlockNumber() (uint64, error) {
 
 // HeaderByNumber returns a block header from the current canonical chain. If number is
 // nil, the latest known header is returned.
-func (cli *RetryableEthclient) HeaderByNumber(number uint64) (*types.Header, error) {
+func (cli *RetryableEthclient) HeaderByNumber(ctx context.Context, number uint64) (*types.Header, error) {
 	var result *types.Header
 	blockNumber := big.NewInt(int64(number))
 
-	_, err := cli.Execute("HeaderByNumber", func(ctx context.Context, c *ethclient.Client) error {
+	_, err := cli.Execute(ctx, "HeaderByNumber", func(ctx context.Context, c *ethclient.Client) error {
 
 		internalResult, err := c.HeaderByNumber(ctx, blockNumber)
 		if err != nil {
@@ -128,10 +117,10 @@ func (cli *RetryableEthclient) HeaderByNumber(number uint64) (*types.Header, err
 }
 
 // FilterLogs executes a filter query.
-func (cli *RetryableEthclient) FilterLogs(q ethereum.FilterQuery) ([]types.Log, error) {
+func (cli *RetryableEthclient) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
 	var result []types.Log
 
-	_, err := cli.Execute("FilterLogs", func(ctx context.Context, c *ethclient.Client) error {
+	_, err := cli.Execute(ctx, "FilterLogs", func(ctx context.Context, c *ethclient.Client) error {
 		internalResult, err := c.FilterLogs(ctx, q)
 		if err != nil {
 			return err
@@ -145,10 +134,10 @@ func (cli *RetryableEthclient) FilterLogs(q ethereum.FilterQuery) ([]types.Log, 
 }
 
 // BlockByNumber executes ethclient.BlockByNumber.
-func (cli *RetryableEthclient) BlockByNumber(blockNumber *big.Int) (*types.Block, error) {
+func (cli *RetryableEthclient) BlockByNumber(ctx context.Context, blockNumber *big.Int) (*types.Block, error) {
 	var result *types.Block
 
-	_, err := cli.Execute("BlockByNumber", func(ctx context.Context, c *ethclient.Client) error {
+	_, err := cli.Execute(ctx, "BlockByNumber", func(ctx context.Context, c *ethclient.Client) error {
 		internalResult, err := c.BlockByNumber(ctx, blockNumber)
 		if err != nil {
 			return err

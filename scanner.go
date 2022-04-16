@@ -251,7 +251,7 @@ func (s *Scanner) scanTaskDoWork(ctx context.Context, nextBlock uint64, task Sca
 		case <-ticker.C:
 		}
 
-		currentBlock, err := ethClient.BlockNumber()
+		currentBlock, err := ethClient.BlockNumber(ctx)
 		if err != nil {
 			return err
 		}
@@ -446,7 +446,7 @@ func (s *Scanner) getLogs(ctx context.Context, ethClient *RetryableEthclient, lo
 			blocksToGet := toBlock - fromBlock + 1
 
 			logger.Infof("Getting events for from %v blocks, from %v to %v...", blocksToGet, fromBlock, toBlock)
-			logs, err := ethClient.FilterLogs(localFilter)
+			logs, err := ethClient.FilterLogs(ctx, localFilter)
 
 			if err != nil {
 				logger.WithError(err).Error("Fail to get logs events")
@@ -493,7 +493,6 @@ func (s *Scanner) getBlocks(ctx context.Context, ethClient *RetryableEthclient, 
 	blocks := make(map[uint64]*types.Block)
 	innerCtx, cancelFunc := context.WithCancel(ctx)
 	defer cancelFunc()
-	ethClient = ethClient.WithContext(innerCtx)
 
 	counter := 0
 
@@ -512,7 +511,7 @@ func (s *Scanner) getBlocks(ctx context.Context, ethClient *RetryableEthclient, 
 			go func(blockNumber *big.Int) {
 				defer wg.Done()
 
-				block, err := ethClient.BlockByNumber(blockNumber)
+				block, err := ethClient.BlockByNumber(innerCtx, blockNumber)
 
 				if errors.Is(err, context.Canceled) {
 					logger.Errorf("Task to get block %v is cancelled", blockNumber)
